@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Aruba OAS sync works again.** The daily sync of the New Central, AOS 8, UXI, ClearPass and AOS-CX specs had failed every day since 2026-09-29 with `no OpenAPI definitions found in ssr-props apiDefinitions`. The developer hub moved its per-file registry list within the reference page's ssr-props. `fetch_aruba_oas.py` now:
+  - reads the registry from its current location, and fails with a clear message if it moves again;
+  - accepts definitions labelled `swagger` (ClearPass's are relabelled although they are OpenAPI 3);
+  - rebuilds definitions that have no registry entry from their reference pages instead of silently dropping them;
+  - refuses to update a project whose definition count drops, or where a definition loses more than half its paths.
+
+  Vendored layout is unchanged (flat `vendor/clearpass/`, single `vendor/aoscx/` file).
+- **Sync failures no longer file one issue per day.** The Aruba, GreenLake and Mist sync workflows keep a single open failure issue with a fixed title, comment on it on each repeat failure, and close it on the next successful run.
+
+### Changed
+- **Vendored Aruba specs refreshed** (first successful sync since 2026-07-09):
+  - New Central monitoring: +6 operations, including `threats`, `device-notes`, AP `dhcp-pools` and `subscription-expiring-summary`.
+  - New Central services: +8 operations / −1. Added `wids-monitored-aps`, `wids-intrusions`, live-upgrade status and asset-tag images. Removed `airmatch-state`, which no tool uses.
+  - ClearPass: 6.12.7 → 6.14.1, with the same paths.
+  - Central config, AOS 8, UXI and AOS-CX: no path changes.
+- `vendor/central/SOURCE.md` now describes the current fetch mechanism.
+
+## [3.7.0.2] - 2026-10-26
+
+### Fixed
+- **Central troubleshooting tools no longer fail with `404 Route Not Found`.** `monitoring_api` resolved the `troubleshooting` category to `network-troubleshooting/v1alpha1`, which Central has retired, so every call failed regardless of the command or device: `central_show_commands`, ping, traceroute, cable test, port bounce, PoE bounce, and the five client/user disconnects, plus their `async-operations` polling. The category now resolves to `v1`, the only version the vendored New Central OAS documents. Request bodies and the `202 location` task handoff are unchanged in `v1`. Live-verified: every action's `v1alpha1` route returns `Route Not Found` while `v1` is live, and a show command on a CX switch now completes end to end. Tool names and parameters are unchanged. Closes #705.
+- **`central_show_commands` docstring** now says that Central runs only commands on its per-device allow-list (anything else completes with `Command '<cmd>' not allowed`), and that on CX, transceivers are listed by `show system inventory`. `show interface transceiver` is not on Central's CX list.
+
+### Added
+- **`test_central_troubleshooting_routes.py`** drives every troubleshooting helper (initiate, poll and disconnect, across each supported device family) through a recording connection and asserts that each request's method and path exists in the vendored `troubleshooting.json` spec. It catches both a retired version and a renamed path segment.
+
+## [3.7.0.1] - 2026-10-26
+
+**Patch — security release. Upgrade recommended for every deployment.** The published `:latest` image (v3.7.0.0) carried 5 critical and 103 high vulnerabilities (Trivy); this release ships 0 critical and 0 *fixable* high. The remaining high findings are Debian base packages with no upstream fix yet. No tool, parameter or behaviour changes.
+
+### Security
+- **Dependency upgrades (`uv.lock`)** clearing all open pip-audit / Dependabot advisories: PyJWT 2.13.0 → 2.15.1 (key-confusion / signature-bypass advisories incl. the critical GHSA-ffc3-869f-jxw9), anyio 4.13.0 → 4.14.2 (critical GHSA-82r6-8w77-94w6), urllib3 2.7.0 → 2.8.0, certifi → 2026.10.23 (eMudhra CA distrust), fastmcp 3.4.2 → 3.4.11 (stays on 3.x; backported SSRF, path-parameter, auth and transform hardening), mcp 1.28.1 → 1.30.0 (stays on 1.x; unbounded StreamableHTTP session accumulation), authlib 1.7.0 → 1.9.1, opentelemetry-api 1.41.1 → 1.45.1, plus dev-only virtualenv / filelock / pip.
+- **The image now installs exactly what `uv.lock` pins.** The Dockerfile never copied `uv.lock`, so `uv sync --frozen` failed silently and the `|| uv sync` fallback re-resolved fresh versions at every build — the shipped image could differ from the audited lockfile. `uv.lock` is now copied into both stages and installed with `uv sync --locked` (no fallback), so a missing or stale lockfile fails the build.
+- **System pip removed from the runtime image.** The app runs from a uv-managed venv that never uses it; pip's vendored urllib3 / msgpack / setuptools were the last fixable high findings. ensurepip's bundled wheel is removed too.
+- **Base images pinned by version tag + multi-arch digest** (`python:3.13-slim-trixie`, `uv` 0.13.5, `deno` 2.9.8) instead of floating `:latest` / `:bin` tags. `uv` and `deno` are now named `FROM` stages so Dependabot's docker ecosystem can bump them. Root's uv download cache no longer ships in the image (`--no-cache`).
+
 ## [3.7.0.0] - 2026-08-06
 
 **Minor — credentials may now come from a `.env` file or environment variables, alongside the existing Docker secret files.** Classified minor rather than patch because it changes how the server is configured and deployed. Existing secrets-based deployments are unaffected: the secret file still wins and the base `docker-compose.yml` still mounts it, so `docker compose up -d` keeps working unchanged.
