@@ -1,17 +1,15 @@
 """Aruba Central WIDS (Wireless Intrusion Detection) tools.
 
 Wraps the ``network-services/v1/wids-monitored-aps`` endpoint. The
-endpoint is tenant-scoped (no cross-tenant exposure) and is now publicly
+endpoint is tenant-scoped (no cross-tenant exposure) and is publicly
 documented at
 https://developer.arubanetworks.com/new-central/reference/listmonitoredapsv1.md
-(updated 2026-07-14), which supersedes the 2026-05-15 undocumented-endpoint
-build-policy note in ``docs/central-undocumented-endpoints.md``.
+(updated 2026-07-14).
 
 NOTE 2026-08-30: the route moved ``v1alpha1`` -> ``v1``. The old path 404s,
 and 404 is not a documented response for this endpoint, so a 404 here means
-the caller is on a stale version rather than the feature being absent. The
-``network-config/*`` tools remain correctly on ``v1alpha1``; only
-``network-services`` moved.
+the caller is on a stale version rather than the feature being absent. This
+is per-API, not Central-wide: ``network-config/*`` is still on ``v1alpha1``.
 
 Returns the caller's APs' reports of nearby APs they've detected,
 classified as one of:

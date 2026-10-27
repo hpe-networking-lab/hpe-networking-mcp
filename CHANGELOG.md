@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.7.0.3] - 2026-10-27
 
 ### Fixed
+- **`central_get_wids_monitored_aps` works again** (contributed by @hpe-networking-lab, #651). Central moved the WIDS monitored-APs route from `network-services/v1alpha1` to `v1`, and the old path returns `404 Route Not Found`, so every call failed. The tool now calls `network-services/v1/wids-monitored-aps`, which the refreshed New Central spec documents (below). The `v1` filter still supports the structured `classification` / `contained_only` / `site_id` arguments. Live-verified: the unfiltered read returns records with the documented fields, and the classification filter and the raw OData filter return matching subsets. Adds `test_central_wids.py` (route, filter composition, mixed-filter refusal, error envelope).
 - **Aruba OAS sync works again.** The daily sync of the New Central, AOS 8, UXI, ClearPass and AOS-CX specs had failed every day since 2026-09-29 with `no OpenAPI definitions found in ssr-props apiDefinitions`. The developer hub moved its per-file registry list within the reference page's ssr-props. `fetch_aruba_oas.py` now:
   - reads the registry from its current location, and fails with a clear message if it moves again;
   - accepts definitions labelled `swagger` (ClearPass's are relabelled although they are OpenAPI 3);
